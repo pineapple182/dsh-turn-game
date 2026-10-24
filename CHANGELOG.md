@@ -12,6 +12,8 @@
   acknowledges it after the review.
 - Interface-first README: DSH plugin market/mirror install, broad bind
   intents, trust signals, and an invitation for new games.
+- Bilingual READMEs: `README.md` (Chinese) and `README.en.md` (English) with
+  a language switch at the top.
 - Turn envelope exposes top-level `winner`; the gateway prefers it and falls
   back to `state.winner`.
 - Gomoku example: 15×15 Canvas UI, JSON state, CLI, SSE, agent mode,

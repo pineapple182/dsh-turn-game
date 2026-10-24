@@ -8,6 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
 const patch = readFileSync(resolve(root, 'cordis.patch.yml'), 'utf8')
 const readme = readFileSync(resolve(root, 'README.md'), 'utf8')
+const readmeEn = readFileSync(resolve(root, 'README.en.md'), 'utf8')
 
 test('package is a DSH bundle with publishable metadata', () => {
   assert.equal(pkg.name, 'dsh-turn-game')
@@ -22,12 +23,14 @@ test('package is a DSH bundle with publishable metadata', () => {
 })
 
 test('npm files include the patch, entrypoint, license and icon', () => {
-  for (const file of ['lib/', 'cordis.patch.yml', 'README.md', 'LICENSE', 'icon.svg']) {
+  for (const file of ['lib/', 'cordis.patch.yml', 'README.md', 'README.en.md', 'LICENSE', 'icon.svg']) {
     assert.ok(pkg.files.includes(file), `missing ${file} in files`)
   }
 })
 
 test('README exposes a one-step install command', () => {
   assert.match(readme, /dsh plugin --profile web add dsh-turn-game/)
-  assert.match(readme, /dsh-turn-game/)
+  assert.match(readme, /README\.en\.md/)
+  assert.match(readmeEn, /README\.md/)
+  assert.match(readmeEn, /dsh plugin --profile web add dsh-turn-game/)
 })

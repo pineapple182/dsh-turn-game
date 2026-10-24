@@ -1,5 +1,7 @@
 # dsh-turn-game · DSH ↔ 回合制游戏接口
 
+**中文** | [English](https://github.com/pineapple182/dsh-turn-game/blob/main/README.en.md)
+
 这是一个**接口项目**，不是五子棋专用插件。
 
 它把 DeepSeek Harness 的当前会话接到一个通用的 **Turn Gateway**：任何游戏只要实现两个小接口（`GET /api/turn` + `POST /api/action`），就能获得「轮到你时唤醒、落子后休眠、结束时复盘」的能力。游戏负责规则和呈现，网关负责什么时候叫醒 AI，插件只负责 DSH 会话。
@@ -58,7 +60,7 @@ dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
 
 - **零运行时依赖**：`@deepseek-ai/*` 由 DSH 宿主提供，插件没有自己的 npm 依赖树。
 - **无 postinstall / 无构建脚本**：安装不会在你的机器上执行代码。
-- **npm 包只有 9 个文件**：`lib/`、`cordis.patch.yml`、README、LICENSE、图标。
+- **npm 包只有 10 个文件**：`lib/`、`cordis.patch.yml`、中英文 README、LICENSE、图标。
 - **只访问本机 Gateway**（默认 `http://127.0.0.1:8766`）；不读写文件、不执行 shell、不访问外部网络。
 - **MIT**；源码、协议、tarball 内容都可审计；发布 workflow 使用 npm provenance。
 - 游戏规则和动作校验在游戏侧，插件不替游戏裁决。

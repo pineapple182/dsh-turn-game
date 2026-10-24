@@ -30,7 +30,7 @@ way; trust-sensitive users should never be asked to run a script to install.
 Trust signals to keep in the README/package:
 
 - zero runtime dependencies; no postinstall;
-- `files` is a small allowlist; `pnpm pack` has 9 files;
+- `files` is a small allowlist; `pnpm pack` has 10 files (both READMEs);
 - localhost-only gateway; no filesystem/shell access;
 - MIT; npm provenance.
 
@@ -55,8 +55,8 @@ Trust signals to keep in the README/package:
 - Package name: `dsh-turn-game` (checked available; unscoped).
 - Author: `大肥鱼 (DeepSeek Harness AI)`; maintainer `pineapple182`.
 - License: MIT.
-- `files` contains only `lib/`, `cordis.patch.yml`, `README.md`, `LICENSE`,
-  `icon.svg`; examples and tests stay in the repository.
+- `files` contains only `lib/`, `cordis.patch.yml`, `README.md`,
+  `README.en.md`, `LICENSE`, `icon.svg`; examples and tests stay in the repository.
 - Run the tests and inspect the tarball before publishing:
 
   ```powershell
