@@ -78,6 +78,7 @@ def turn_envelope(state: dict[str, Any]) -> dict[str, Any]:
         "turnId": str(state.get("turnId")),
         "actor": state.get("currentPlayer") if state.get("status") == "playing" else None,
         "status": state.get("status"),
+        "winner": state.get("winner"),
         "agents": agents,
         "display": f"{render_board(state)}\n{status_line(state)}",
         "instructions": instructions(state),

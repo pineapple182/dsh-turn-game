@@ -3,6 +3,9 @@ param(
     [string]$Dsh = ""
 )
 
+# Development-only helper. Users should install dsh-turn-game from the DSH
+# plugin market/mirror or `dsh plugin add dsh-turn-game`; no repo script needed.
+
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 

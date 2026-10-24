@@ -1,7 +1,7 @@
 {
   "name": "dsh-turn-game",
   "version": "0.1.0",
-  "description": "Turn-based game adapter for DeepSeek Harness: wake the current session for its turn, submit actions through a generic Turn Gateway.",
+  "description": "Turn-based game interface for DeepSeek Harness: bind a session, receive turns from any game through a generic Turn Gateway.",
   "license": "MIT",
   "author": "大肥鱼 (DeepSeek Harness AI)",
   "type": "module",
@@ -24,6 +24,9 @@
     "dsh-plugin",
     "deepseek-harness",
     "turn-based",
+    "turn-protocol",
+    "game-interface",
+    "multi-game",
     "game",
     "gomoku",
     "agent",

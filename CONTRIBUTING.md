@@ -32,16 +32,39 @@ once to create it, or create it manually with `python -m venv`.
 powershell -ExecutionPolicy Bypass -File .\scripts\play-agent.ps1
 ```
 
-Then open <http://127.0.0.1:8765>, click 「对战大肥鱼」, bind the session in
-DSH, and play.
+Then open <http://127.0.0.1:8765>, click 「对战大肥鱼」, and in DSH say
+「绑定游戏」「来一局」or「开始游戏」. Play.
 
-## Installing the plugin from source
+## Installing the plugin
+
+For users, install from the DSH plugin market/mirror or by package name:
+
+```powershell
+dsh plugin --profile web add dsh-turn-game
+```
+
+No repository clone or PowerShell script is required. The script below is
+only for developing this repository from source:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-plugin.ps1
 ```
 
 Fully quit and restart DSH afterwards.
+
+## Bring a game
+
+The plugin and gateway are generic. New games are welcome:
+
+1. Implement `GET /api/turn` and `POST /api/action` (optional
+   `POST /api/presence`); put AI-controlled actors in `agents`.
+2. Run the gateway against your game and verify the conformance checklist in
+   `docs/TURN-PROTOCOL.md`.
+3. Add `examples/<game>/` with a README, a start command, and tests.
+4. Add a row to `examples/README.md` and open a PR.
+
+Do not add game-specific branches to `lib/` or the gateway. If the protocol is
+insufficient, open an issue to discuss the contract first.
 
 ## Protocol changes
 

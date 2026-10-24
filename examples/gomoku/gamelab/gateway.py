@@ -214,6 +214,9 @@ class Gateway:
                 state = envelope.get("state") if isinstance(envelope.get("state"), dict) else {}
                 last_move = state.get("lastMove") if isinstance(state.get("lastMove"), dict) else {}
                 last_player = last_move.get("player")
+                winner = envelope.get("winner")
+                if winner is None:
+                    winner = state.get("winner")
                 result = self._result_for(key, turn_id)
                 if agents and last_player not in agents and result is None:
                     self._counter += 1
@@ -226,7 +229,7 @@ class Gateway:
                         "matchId": match_id,
                         "turnId": turn_id,
                         "actor": None,
-                        "winner": state.get("winner"),
+                        "winner": winner,
                         "gameStatus": status,
                         "agents": [str(a) for a in agents],
                         "display": envelope.get("display"),

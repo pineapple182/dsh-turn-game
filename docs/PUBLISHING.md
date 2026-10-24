@@ -2,18 +2,53 @@
 
 This document is for maintainers. It is not part of the npm package.
 
+## 0. Install story (important)
+
+The primary install path is **DSH plugin market/mirror**, not a repository
+script:
+
+1. In the DSH plugin market, search `dsh-turn-game` and click Install; or run
+   `dsh plugin --profile web add dsh-turn-game`.
+2. Restart DSH.
+3. Bind from chat: 「绑定游戏 / 来一局 / 开始游戏」.
+
+`dsh plugin` forwards to pnpm, and the market uses the same fetch path.
+Mirror/proxy settings live in `~/.npmrc` (npm and pnpm share them):
+
+```powershell
+npm config set registry https://registry.npmmirror.com
+# one-off official source if the mirror lags:
+dsh plugin --profile web add dsh-turn-game --registry=https://registry.npmjs.org
+```
+
+See <https://dsh-plugin.org/tutorials/install-plugin-slow-mirror>.
+
+**No clone, Python, or PowerShell script is required to install the plugin.**
+The repository scripts are development/demo only. Keep the README phrased that
+way; trust-sensitive users should never be asked to run a script to install.
+
+Trust signals to keep in the README/package:
+
+- zero runtime dependencies; no postinstall;
+- `files` is a small allowlist; `pnpm pack` has 9 files;
+- localhost-only gateway; no filesystem/shell access;
+- MIT; npm provenance.
+
 ## 1. GitHub
 
 - Owner/repo: `pineapple182/dsh-turn-game` (update `package.json` if the
   final name differs).
 - Public repository.
 - Add the GitHub topic `dsh-plugin` after the repo exists.
-- Description: "Turn-based game adapter for DeepSeek Harness; includes a
-  Gomoku example."
+- Description: "Turn-based game interface for DeepSeek Harness; includes a
+  Gomoku example. Bring your own game."
 - The repository root must keep `package.json` as the plugin package. The
   Gomoku example stays under `examples/gomoku/`.
 - Enable GitHub Security Advisories.
 - Optional: social preview from `icon.svg`.
+- Contact: GitHub Issues / Discussions. Do **not** present
+  `pineapple182@users.noreply.github.com` as a mailbox; it is a commit
+  attribution address only.
 
 ## 2. npm
 
@@ -58,14 +93,16 @@ Submit via the hub's **Submit** flow / issue. Suggested category:
 **Entertainment** (or Tools & Capabilities if the hub prefers generic
 automation). Include:
 
-- One-line value: "Wake the current DSH session for its turn in any
-  turn-based game; includes a Gomoku example."
-- Install: `dsh plugin --profile web add dsh-turn-game`.
+- One-line value: "DSH ↔ any turn-based game: wake the session for its turn
+  and review the result; Gomoku is the reference example."
+- Install: `dsh plugin --profile web add dsh-turn-game` (or install from the
+  marketplace/mirror; no scripts).
 - Compatibility: DSH `0.2.x` (tested `0.2.1-rc.2`).
 - Permissions: localhost gateway only; no filesystem/shell access.
 - Screenshots: `docs/screenshots/lobby.png`, `midgame.png`, `win.png`.
 - License: MIT.
 - Repository: `https://github.com/pineapple182/dsh-turn-game`.
+- Games welcome: link `docs/ADD-A-GAME.md` and `examples/README.md`.
 
 After listing, add the badge to the README if desired:
 

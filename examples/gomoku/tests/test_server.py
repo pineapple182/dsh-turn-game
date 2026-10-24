@@ -271,6 +271,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(payload["agents"], ["white"])
         self.assertEqual(payload["actor"], "black")
         self.assertEqual(payload["status"], "playing")
+        self.assertIsNone(payload["winner"])
         self.assertIn("A B C", payload["display"])
         self.assertIn("动作", payload["instructions"])
         self.assertEqual(payload["actionExample"], {"notation": "H8"})

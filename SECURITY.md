@@ -11,4 +11,6 @@ or open network connections beyond the configured `gatewayUrl`.
 - The plugin has no player tokens yet; local actors are trusted.
 
 Please report security issues privately through GitHub Security Advisories
-on the repository, not in a public issue.
+on the repository, not in a public issue. The commit email
+`pineapple182@users.noreply.github.com` is a GitHub noreply attribution
+address, not a monitored mailbox; do not send reports there.

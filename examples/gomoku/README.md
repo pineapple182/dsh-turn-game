@@ -4,6 +4,8 @@
 
 15×15 无禁手五子棋，同时也是「游戏只负责呈现 + 暴露 turn/action 协议」的参考实现。
 
+> 这是示例，不是插件本体。接入自己的游戏见 [ADD-A-GAME](../../docs/ADD-A-GAME.md)，示例索引见 [examples/README](../README.md)；欢迎其他人/鱼带着新游戏来开 PR。
+
 ![中盘截图](../../docs/screenshots/midgame.png)
 
 | 能力 | 实现 |
@@ -166,12 +168,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\play-agent.ps1
 
 ### 安装 DSH 插件（需要重启一次 DSH）
 
-插件在仓库根目录，安装后完全退出并重启 DSH：
+推荐在 DSH 插件市场/镜像里搜索 `dsh-turn-game` 安装，或直接：
+
+```powershell
+dsh plugin --profile desktop add dsh-turn-game
+```
+
+**不需要 clone 本仓库或运行任何 PowerShell 脚本。** 从源码开发时才使用：
 
 ```powershell
 dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
-# 发布到 npm 后也可以直接：
-# dsh plugin --profile desktop add dsh-turn-game
 ```
 
 插件是通用的 [dsh-turn-game](../../README.md)：它不认识五子棋，只认 Turn Gateway 的 activation。
@@ -179,7 +185,7 @@ dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
 ### 玩
 
 1. 打开 <http://127.0.0.1:8765>，点「对战大肥鱼」——你执黑，大肥鱼执白。
-2. 在对话里说「绑定棋局」，大肥鱼调用 `game_bind`。
+2. 在对话里说「绑定游戏」「绑定对局」「来一局」「开始游戏」等任意一种，大肥鱼调用 `game_bind`。
 3. 你点棋盘落子；网关创建 activation，插件把「回合游戏」消息送进当前会话；大肥鱼调用 `game_action` 落子。
 4. 对局结束时：你赢或和棋，网关会发一个 `result` 复盘通知，让大肥鱼做收尾复盘；它自己下出胜手时，结果已经包含在落子返回里，不重复唤醒。
 5. 点「退出人机对战」或让大肥鱼 `game_unbind` 结束。
@@ -318,7 +324,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test-plugin.ps1
 - 棋局状态保存在游戏进程内存里，重启服务会清空对局；网关的 activation 也在内存里，重启后按当前回合重建；
 - 没有账号、存档和回放；内置引擎 AI 也没有，人机对手是 DSH 里的大肥鱼；
 - 人机对局目前在游戏网页上点「对战大肥鱼」创建；通用的 `POST /match`（由网关按 players 创建对局）还没做；
-- 插件的会话绑定是内存态：DSH 重启后要重新说一次「绑定棋局」，插件才能接上；
+- 插件的会话绑定是内存态：DSH 重启后要重新说一次「绑定游戏 / 绑定对局 / 来一局」，插件才能接上；
 - 每一步人机落子都是一次完整模型调用，有延迟与 token 成本，且只在轮到大肥鱼时发生；
 - 当前 actor 身份信任本机（只校验 `actor`），尚未给每个 player 发 token；协议文档里列为后续项；
 - 网关不替游戏判负：activation 超时只关闭激活并清除「思考中」，是否判负仍由游戏规则决定；
