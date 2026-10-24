@@ -90,10 +90,16 @@
 
 ## 3. Turn Gateway 接口
 
-启动：
+启动（在 `examples/gomoku/` 下）：
 
 ```powershell
 python -m gamelab.gateway --game http://127.0.0.1:8765
+```
+
+或在仓库根目录启动游戏 + 网关：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\play-agent.ps1
 ```
 
 | 方法 | 路径 | 作用 |

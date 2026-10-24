@@ -4,7 +4,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$plugin = Join-Path $root "dsh-plugin"
 
 if (-not $Node) {
     $bundled = Join-Path $env:USERPROFILE ".dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe"
@@ -19,9 +18,9 @@ if (-not $Node) {
 }
 
 $code = 0
-Push-Location $plugin
+Push-Location $root
 try {
-    foreach ($file in @("test/gateway-client.test.mjs", "test/activation-controller.test.mjs", "test/host.test.mjs")) {
+    foreach ($file in @("test/package.test.mjs", "test/gateway-client.test.mjs", "test/activation-controller.test.mjs", "test/host.test.mjs")) {
         & $Node $file
         if ($LASTEXITCODE -ne 0) {
             $code = $LASTEXITCODE

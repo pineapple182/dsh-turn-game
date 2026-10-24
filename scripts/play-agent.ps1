@@ -5,17 +5,24 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$venvPython = Join-Path $root ".venv\Scripts\python.exe"
+$example = Join-Path $root "examples\gomoku"
+$venvPython = Join-Path $example ".venv\Scripts\python.exe"
 
 if (-not (Test-Path $venvPython)) {
-    throw "No .venv found. Run scripts\dev.ps1 first (or create one with python -m venv .venv)."
+    throw "No example .venv found. Run scripts\dev.ps1 once (or create examples/gomoku/.venv with python -m venv)."
 }
 
-$game = Start-Process -FilePath $venvPython -ArgumentList @("-m", "gamelab", "serve", "--port", $GamePort) -WorkingDirectory $root -PassThru -WindowStyle Hidden
+$game = Start-Process -FilePath $venvPython -ArgumentList @("-m", "gamelab", "serve", "--port", $GamePort) -WorkingDirectory $example -PassThru -WindowStyle Hidden
 try {
     Write-Host "Game started: http://127.0.0.1:$GamePort"
     Write-Host "Turn Gateway starting: http://127.0.0.1:$GatewayPort"
-    & $venvPython -m gamelab.gateway --game "http://127.0.0.1:$GamePort" --port $GatewayPort
+    Push-Location $example
+    try {
+        & $venvPython -m gamelab.gateway --game "http://127.0.0.1:$GamePort" --port $GatewayPort
+    }
+    finally {
+        Pop-Location
+    }
 }
 finally {
     if (-not $game.HasExited) {

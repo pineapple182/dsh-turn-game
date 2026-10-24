@@ -2,13 +2,14 @@ param()
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$venvPython = Join-Path $root ".venv\Scripts\python.exe"
+$example = Join-Path $root "examples\gomoku"
+$venvPython = Join-Path $example ".venv\Scripts\python.exe"
 
 if (-not (Test-Path $venvPython)) {
-    throw "No .venv found. Run scripts\dev.ps1 first (or create one with python -m venv .venv)."
+    throw "No example .venv found. Run scripts\dev.ps1 first (or create examples/gomoku/.venv with python -m venv)."
 }
 
-Push-Location $root
+Push-Location $example
 try {
     & $venvPython -m unittest discover -s tests -t . -v
     $code = $LASTEXITCODE

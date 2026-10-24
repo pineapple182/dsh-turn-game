@@ -1,323 +1,139 @@
-# game-lab · 五子棋
+# dsh-turn-game
 
-一个**同时提供视觉输出和 JSON 结构输出**的小游戏项目：浏览器里能点棋盘下子，命令行里能敲一条指令下子，两者操作的是同一盘棋；任何时刻都能从 `GET /api/state` 拿到完整的、可程序消费的游戏状态。
+让 **DeepSeek Harness 的当前会话**去和任何实现了回合协议的游戏对局：轮到你时被唤醒，落子后休眠；对局结束（玩家赢或和棋）时还会收到一次复盘通知。
 
-第一个游戏是 15×15 无禁手五子棋，架构上预留了继续加新游戏的位置。
+插件本身不认识五子棋——也不认识任何具体游戏。游戏只负责呈现与规则；一个通用的 **Turn Gateway** 负责「什么时候该叫醒 AI」；插件负责唤醒 DSH 会话和提交动作。
 
-![中盘截图](docs/screenshots/midgame.png)
+> 仓库里附带一个完整的五子棋示例：[examples/gomoku](https://github.com/pineapple182/dsh-turn-game/tree/main/examples/gomoku)。
 
-| 能力 | 实现 |
-| --- | --- |
-| 视觉输出 | 原生 Canvas 棋盘：落子动画、最后一手标记、五连金光与金环、胜负遮罩、移动端适配 |
-| 点击下子 | 点击 / 触摸棋盘 → `POST /api/move` |
-| 指令下子 | 网页指令台、CLI、HTTP `POST /api/command`，三条路共用同一套指令语法 |
-| JSON 输出 | `GET /api/state` 返回完整状态；页面右侧实时展示，可复制 / 下载 |
-| 实时同步 | SSE（`/api/stream`）把 CLI 或另一个标签页的落子推给所有页面，断线自动降级轮询 |
-| 对局操作 | 悔棋、重开、最后一手、胜负与和棋判定 |
-| 人机对战 | 通用 Turn Gateway 负责「轮到你」的激活与「对局结束」的复盘通知；DSH 插件在当前会话里接招；游戏只暴露 turn/action 协议 |
+> 仓库根目录就是 npm 包；`examples/` 只是随仓库发布的示例，不进入 npm tarball。
 
-## 为什么是这套技术栈
+## 架构
 
-这台机器的情况比较特殊：
-
-- 系统里没有可用的 Node / npm / pnpm，也没有真正的系统 Python；
-- 访问 npm / PyPI 的网络不通，任何 `pip install` / `pnpm install` 都会失败；
-- 机器还要兼顾其他任务，不能把依赖装进系统环境。
-
-所以最终方案是**零第三方依赖**：
-
-- **后端**：Python 3.12（DSH 内置解释器）+ 项目内 `.venv` + 标准库 `http.server`，提供 JSON API、SSE 和静态文件服务；
-- **前端**：原生 ES Modules + Canvas，无打包、无构建步骤；
-- **数据**：一个内存中的 `GameState`，由引擎、HTTP 层、CLI、测试和浏览器共同使用；
-- **测试**：标准库 `unittest`，覆盖规则、指令、HTTP 与 keep-alive 回归。
-
-好处是启动只需要一条命令、不联网、不污染系统；迁移到有网络的环境后，也可以在这个骨架上换 Vite / FastAPI，而不用动游戏规则本身。
-
-> 备注：`.venv` 是用内置解释器创建的；当前沙箱里 `ensurepip` 因临时目录权限装不进 pip，但项目没有任何第三方依赖，不影响运行与测试。
-
-## 快速开始
-
-```powershell
-cd game-lab
-.\.venv\Scripts\python.exe -m gamelab serve
-```
-
-然后打开 <http://127.0.0.1:8765>。
-
-也可以直接跑脚本（自动检查 `.venv`）：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1
-```
-
-如果机器上没有 `.venv`，用内置解释器建一个（不需要联网）：
-
-```powershell
-$py = "C:\Users\Eric Li\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe"
-& $py -m venv .venv
-```
-
-## 三种操作方式
-
-### 1. 鼠标
-
-点击棋盘交叉点落子；悬停显示半透明预览；最后一手有红点标记。
-
-### 2. 指令（网页指令台 / CLI / HTTP）
-
-坐标规则：列 `A`–`O`（从左到右），行 `1`–`15`（从下往上），所以 `H8` 是棋盘正中心。
-
-| 指令 | 作用 |
-| --- | --- |
-| `H8` | 当前一方在 H8 落子 |
-| `place H8` / `move H8` / `下 H8` | 同上，显式写法 |
-| `undo` / `悔棋` | 撤回一手 |
-| `reset` / `重开` | 重开一局 |
-| `state` / `状态` | 返回完整 JSON 状态 |
-| `help` / `帮助` | 显示指令帮助 |
-
-CLI：
-
-```powershell
-.\.venv\Scripts\python.exe -m gamelab move H8      # 落子
-.\.venv\Scripts\python.exe -m gamelab board        # 文字棋盘
-.\.venv\Scripts\python.exe -m gamelab state        # 完整 JSON
-.\.venv\Scripts\python.exe -m gamelab undo         # 悔棋
-.\.venv\Scripts\python.exe -m gamelab reset        # 重开
-```
-
-CLI 默认连 `http://127.0.0.1:8765`，可用 `--url` 或环境变量 `GAMELAB_URL` 覆盖。人机模式下 CLI 落子需要加 `--as human` 或 `--as agent`。
-
-### 3. HTTP API
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| `GET` | `/api/state` | 完整游戏状态（JSON） |
-| `GET` | `/api/turn` | 通用回合信封（网关用；含 turnId / actor / agents / display / instructions） |
-| `GET` | `/api/stream` | SSE，每次状态变化推送一个 `state` 事件 |
-| `GET` | `/api/health` | 健康检查 + 当前 revision |
-| `POST` | `/api/move` | 落子：`{"notation": "H8", "as": "human"}`；坐标写法也支持 `{"x": 7, "y": 7}` |
-| `POST` | `/api/action` | 通用动作协议：`{"turnId": "12", "actor": "white", "action": {"notation": "H8"}}` |
-| `POST` | `/api/presence` | 通用 presence：`{"actor": "white", "activity": "thinking"}` |
-| `POST` | `/api/command` | 执行指令：`{"command": "H8", "as": "human"}` |
-| `POST` | `/api/mode` | 开始人机对战：`{"humanSide": "black", "agentSide": "white"}`；`{"clear": true}` 退出 |
-| `POST` | `/api/agent/status` | 设置思考状态：`{"thinking": true}`；只有人机模式可用 |
-| `POST` | `/api/undo` | 悔棋（人机模式下返回 409） |
-| `POST` | `/api/reset` | 重开（人机模式会保留） |
-
-`as` 只在人机模式下需要，取值 `human` / `agent`；服务端会拒绝替对方落子。普通双人对局不传 `as`。`/api/turn`、`/api/action`、`/api/presence` 是给 Turn Gateway 的通用协议，规则细节见 [Turn Protocol](docs/TURN-PROTOCOL.md)。
-
-所有写操作返回同样的信封结构：
-
-```json
-{
-  "ok": true,
-  "action": "place",
-  "move": { "seq": 1, "player": "black", "x": 7, "y": 7, "notation": "H8", "at": "2026-10-24T14:43:57+00:00" },
-  "state": { "...": "完整状态" }
-}
-```
-
-错误示例（HTTP 400）：
-
-```json
-{
-  "ok": false,
-  "action": "error",
-  "error": { "code": "occupied", "message": "H8 已经有棋子了" },
-  "state": { "...": "当前仍可用的完整状态" }
-}
-```
-
-```powershell
-$body = @{ notation = "H8" } | ConvertTo-Json -Compress
-Invoke-RestMethod -Uri http://127.0.0.1:8765/api/move -Method Post -Body $body -ContentType application/json
-```
-
-## 通用回合层：Turn Gateway + DSH 插件
-
-游戏只负责「把回合状态友好地呈现出来」和「接受动作」；AI 的唤醒、去重、超时、重试由一个**通用的激活层**负责。这样加新游戏时，不需要再写一套回馈/裁判逻辑。
-
-```
-人 → 游戏 UI → 游戏 Host（规则/状态）
+```text
+人 → 游戏 UI → 游戏 Host（规则 / 状态）
                     │  GET /api/turn / POST /api/action
                     ▼
                Turn Gateway（通用激活层）
-                    │  activation 事件 / action 转发
+                    │  activation / action 转发
                     ▼
-               DSH 插件（通用适配器）→ DSH Agent
+               dsh-turn-game（本插件）→ DSH Agent
 ```
 
-### 启动
+- `turn` activation：轮到你，模型调用 `game_action`。
+- `result` activation：玩家赢或和棋，模型做一次收尾复盘，然后 ack；不需要落子。
+- 大肥鱼自己下出胜手时，结果已经在落子返回里，不重复唤醒。
+
+协议细节见 [docs/TURN-PROTOCOL.md](https://github.com/pineapple182/dsh-turn-game/blob/main/docs/TURN-PROTOCOL.md)。
+
+## 安装
 
 ```powershell
-# 1) 游戏服务
-.\.venv\Scripts\python.exe -m gamelab serve
-
-# 2) 通用激活层（另一个终端）
-.\.venv\Scripts\python.exe -m gamelab.gateway --game http://127.0.0.1:8765
+dsh plugin --profile web add dsh-turn-game
+# 桌面端把 web 换成 desktop
 ```
 
-网关默认监听 `http://127.0.0.1:8766`。
-
-### 安装 DSH 插件（需要重启一次 DSH）
-
-先完全退出 DeepSeek Harness，然后：
+也可以从源码开发：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-plugin.ps1
-# 等价于：
-# dsh plugin --profile desktop add "C:\Users\Eric Li\Documents\deepseek-harness\default-workspace\game-lab\dsh-plugin"
+dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
 ```
 
-插件是通用的 [dsh-turn-game](dsh-plugin/README.md)：它不认识五子棋，只认 Turn Gateway 的 activation。
+安装后需要**完全退出并重启 DSH**。插件只访问本机 Turn Gateway，不读写文件、不执行 shell。
 
-### 玩
+## 快速开始（五子棋示例）
 
-1. 打开 <http://127.0.0.1:8765>，点「对战大肥鱼」——你执黑，大肥鱼执白。
-2. 在对话里说「绑定棋局」，大肥鱼调用 `game_bind`。
-3. 你点棋盘落子；网关创建 activation，插件把「回合游戏」消息送进当前会话；大肥鱼调用 `game_action` 落子。
-4. 对局结束时：你赢或和棋，网关会发一个 `result` 复盘通知，让大肥鱼做收尾复盘；它自己下出胜手时，结果已经包含在落子返回里，不重复唤醒。
-5. 点「退出人机对战」或让大肥鱼 `game_unbind` 结束。
+前置：DSH `0.2.x`、Python 3.12（仅示例需要）、Node（DSH 自带）。示例默认只监听 `127.0.0.1`。
 
-![大厅：对战大肥鱼](docs/screenshots/lobby.png)
+1. 启动示例游戏和网关（在仓库根目录）：
 
-游戏本身仍然可以单机双人对局；网关/插件只是可选的「AI 接入层」。协议细节（游戏侧 `/api/turn`、`/api/action` 的字段与状态机）见 [Turn Protocol](docs/TURN-PROTOCOL.md)。
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\play-agent.ps1
+   ```
 
-## JSON 状态结构
+2. 打开 <http://127.0.0.1:8765>，点「对战大肥鱼」。
+3. 在 DSH 会话里说：**绑定棋局**。
+4. 你落子；轮到白方时插件会唤醒模型，模型调用 `game_action` 落子。
+5. 你赢或和棋时，网关会发 `result` 通知，大肥鱼做收尾复盘。
 
-`GET /api/state` 的返回（`board` 每行 15 个整数；实际输出未压缩，此处为便于阅读排版）：
+![大厅：对战大肥鱼](https://raw.githubusercontent.com/pineapple182/dsh-turn-game/main/docs/screenshots/lobby.png)
 
-```json
-{
-  "schemaVersion": 1,
-  "game": "gomoku",
-  "revision": 12,
-  "rules": { "boardSize": 15, "winLength": 5, "forbiddenMoves": false },
-  "boardSize": 15,
-  "board": [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  ],
-  "status": "black_win",
-  "winner": "black",
-  "currentPlayer": null,
-  "turnId": "17",
-  "mode": { "humanSide": "black", "agentSide": "white" },
-  "agentThinking": false,
-  "agentThinkingSince": null,
-  "moveCount": 9,
-  "lastMove": { "seq": 9, "player": "black", "x": 11, "y": 7, "notation": "L8", "at": "..." },
-  "winLine": [{ "x": 7, "y": 7 }, { "x": 8, "y": 7 }, { "x": 9, "y": 7 }, { "x": 10, "y": 7 }, { "x": 11, "y": 7 }],
-  "moves": ["...按顺序的每一手..."],
-  "createdAt": "2026-10-24T14:40:00+00:00",
-  "updatedAt": "2026-10-24T14:43:57+00:00"
-}
-```
+## 工具
 
-| 字段 | 含义 |
+| 工具 | 作用 |
 | --- | --- |
-| `schemaVersion` | 状态格式版本，当前为 `1` |
-| `game` | 游戏标识，当前为 `gomoku` |
-| `revision` | 每次变动 +1，可用于去重 / 判断新旧 |
-| `rules` | 规则参数；`forbiddenMoves: false` 表示无禁手 |
-| `board` | 15 行 × 15 列，`0` 空、`1` 黑、`2` 白 |
-| `status` | `playing` / `black_win` / `white_win` / `draw` |
-| `winner` | `black` / `white` / `null` |
-| `currentPlayer` | 轮到谁；对局结束时为 `null` |
-| `turnId` | 回合标识；只在落子/重置/悔棋时变，供通用协议去重 |
-| `mode` | `null` 表示普通双人；否则是 `{"humanSide", "agentSide"}` |
-| `agentThinking` / `agentThinkingSince` | 大肥鱼是否在思考，以及开始思考的时间 |
-| `lastMove` / `moves` | 最后一手 / 全部手数（含坐标与标准记法） |
-| `winLine` | 获胜的连续棋子坐标（长度 ≥ 5） |
-| `createdAt` / `updatedAt` | UTC 时间戳 |
+| `game_bind` | 把当前会话绑定到 Turn Gateway；可选 `matchId` 只绑定某一局 |
+| `game_unbind` | 解除绑定，棋局继续存在 |
+| `game_list` | 列出网关里的对局和待处理回合 |
+| `game_state` | 查看某局当前的 display / JSON 状态（只读） |
+| `game_action` | 提交动作；`activationId` + `action`（JSON 字符串） |
 
-`winLine` 只在对局结束时出现；`lastMove` 为 `null` 时表示空盘。
+模型会自动遵守 `whenIdle`、去重、最多一次纠正；结果通知会自动 ack。
 
-## 目录结构
+## 配置
 
-```text
-game-lab/
-├─ gamelab/
-│  ├─ games/
-│  │  ├─ __init__.py        # 游戏注册表
-│  │  ├─ gomoku.py          # 规则、状态、指令解析（纯逻辑，可单独测试）
-│  │  └─ gomoku_turn.py     # 五子棋对 turn/action 协议的适配（薄层）
-│  ├─ presentation.py       # 共用的棋盘文本渲染
-│  ├─ gateway.py            # 通用 Turn Gateway（激活层，不认识具体游戏）
-│  ├─ session.py            # 线程安全对局 + SSE 订阅总线
-│  ├─ server.py             # HTTP 路由、静态文件、SSE
-│  ├─ cli.py                # serve / move / state / board / undo / reset
-│  └─ __main__.py           # python -m gamelab
-├─ web/                     # index.html + style.css + app.js（无构建）
-├─ dsh-plugin/              # 通用 DSH 适配器：绑定会话、activation、game_* 工具
-├─ tests/                   # unittest：规则、指令、HTTP、网关、协议
-├─ docs/screenshots/        # 中盘 / 终局 / 手机布局
-├─ docs/TURN-PROTOCOL.md    # 游戏 ↔ 网关 ↔ 插件 的契约
-├─ docs/dsh-api/            # 从 DSH 包里抽出的插件 API 参考（分析用）
-├─ scripts/                 # dev.ps1 / play-agent.ps1 / test.ps1
-├─ .venv/                   # 项目内虚拟环境（已 gitignore）
-└─ pyproject.toml           # 仅声明元信息，零依赖、无需安装
+根目录的 `cordis.patch.yml`：
+
+```yaml
+- id: turn-game
+  config:
+    gatewayUrl: http://127.0.0.1:8766
+    pollMs: 400
+    enabled: true
 ```
 
-### 加下一个游戏
+| 字段 | 默认值 | 含义 |
+| --- | --- | --- |
+| `gatewayUrl` | `http://127.0.0.1:8766` | Turn Gateway 地址 |
+| `pollMs` | `400` | 轮询 activation 的间隔 |
+| `enabled` | `true` | 关闭后不注册工具 |
 
-1. 在 `gamelab/games/` 放一个模块，暴露 `create()`、引擎的 `state()` 与 `execute(command)`；
-2. 在 `gamelab/games/__init__.py` 的 `GAMES` 注册；
-3. 前端通过 `state.game` 区分渲染方式（棋盘类游戏可以复用 `BoardView` 的坐标与网格绘制）。
+## 兼容性与权限
 
-服务端只依赖 `state()` / `execute()` 这两个约定，不感知具体规则。
+- 已验证 DSH `0.2.1-rc.2`；`engines.dsh` 声明 `>=0.2.0-rc.1 <0.3.0`。
+- 插件是纯 ESM JavaScript，零运行时依赖；`@deepseek-ai/*` 由宿主提供。
+- 只访问配置的本地 Gateway；没有文件、shell 或外部网络权限。
+- 动作校验在游戏侧；插件提交的 `action` 由游戏最终裁决。
 
-## 测试
+## 示例：五子棋
 
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -t .
-# 或者
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
-```
+- Python 3.12 零第三方依赖；15×15 无禁手、黑白交替、胜负/和棋/悔棋/重开。
+- 浏览器 Canvas UI + JSON API + CLI + SSE。
+- Turn Gateway 与游戏服务分离，后续换游戏只需实现 `turn`/`action`。
+- 详细文档、API 和 JSON 字段：[examples/gomoku](https://github.com/pineapple182/dsh-turn-game/tree/main/examples/gomoku)。
 
-插件侧（通用适配器）：
+| 中盘 | 终局 |
+| --- | --- |
+| ![中盘](https://raw.githubusercontent.com/pineapple182/dsh-turn-game/main/docs/screenshots/midgame.png) | ![终局](https://raw.githubusercontent.com/pineapple182/dsh-turn-game/main/docs/screenshots/win.png) |
+
+## 开发与测试
+
+插件测试（Node，无需安装依赖）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\test-plugin.ps1
 ```
 
-当前 Python 用例全部通过（79 项，含 Turn Gateway 的激活/动作/超时/对局结束通知集成测试），通用插件另有 22 项 Node 测试。覆盖：坐标换算、轮次、占位 / 越界 / 终局拒绝、横竖斜与反斜五连、四连不胜、悔棋与重开、和棋、指令解析与错误码、HTTP 状态码、SSE 首帧、路径穿越防护、keep-alive 请求体排空回归、turn/action 协议、网关激活与幂等、result 复盘通知。
+示例测试（Python）：
 
-## 一些实现细节
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
+```
 
-- **谁先手**：黑方先行，双方交替；无三三 / 四四 / 长连禁手，任意一方连成 5 子及以上即胜（标准连成 5 子会先于长连触发，因此实际不会出现 6 连判负的问题）。
-- **人机模式**：服务端知道 `humanSide` / `agentSide`，落子要声明 `as`；替对方落子会被 409 拒绝。人机模式下悔棋禁用、重置保留模式与执子方。
-- **回合协议**：`/api/turn` 的 `turnId` 只在落子/重置/悔棋时递增，presence 和模式变化不会改变它；`/api/action` 会拒绝过期的 `turnId` 和错误的 `actor`。
-- **激活层**：Turn Gateway 只做轮询、activation、超时、去重和动作转发，不 import 任何游戏代码；新增游戏只需实现 `turn`/`action`。
-- **结束通知**：玩家赢/和棋时网关创建 `kind: "result"` 的复盘 activation，插件唤醒模型复盘后 ack；agent 自己下出胜手时不再重复生成，因为动作返回里已有结果。
-- **和棋**：225 手全部下满仍未五连即和棋。
-- **并发**：单个 `Session` 用 `RLock` 串行化所有读写，落子和悔棋不会互相踩踏；SSE 通过每客户端队列广播，慢客户端丢帧而不是卡住游戏。
-- **HTTP/1.1 keep-alive**：所有 POST 都会先读干净请求体，避免残留字节污染下一条请求（有回归测试）。
-- **快照模式**：页面加 `?static=1` 可跳过 SSE、关闭入场动画，方便无头浏览器截图。
-- **安全边界**：默认只监听 `127.0.0.1`；静态文件路径做过 `..` 穿越校验。
+当前：79 项 Python + 25 项 Node。
 
 ## 已知边界
 
-- 棋局状态保存在游戏进程内存里，重启服务会清空对局；网关的 activation 也在内存里，重启后按当前回合重建；
-- 没有账号、存档和回放；内置引擎 AI 也没有，人机对手是 DSH 里的大肥鱼；
-- 人机对局目前在游戏网页上点「对战大肥鱼」创建；通用的 `POST /match`（由网关按 players 创建对局）还没做；
-- 插件的会话绑定是内存态：DSH 重启后要重新说一次「绑定棋局」，插件才能接上；
-- 每一步人机落子都是一次完整模型调用，有延迟与 token 成本，且只在轮到大肥鱼时发生；
-- 当前 actor 身份信任本机（只校验 `actor`），尚未给每个 player 发 token；协议文档里列为后续项；
-- 网关不替游戏判负：activation 超时只关闭激活并清除「思考中」，是否判负仍由游戏规则决定；
-- 对局结束的 result 通知目前只在玩家最后一手/和棋时唤醒；agent 自己下出胜手时依赖它自己那轮的工具结果来复盘；
-- 手机端的 390px 布局通过 CDP 设备模拟验证过（无横向溢出），真机上的手感还需要实际点一点。
+- 绑定和 activation 是内存态：DSH/网关重启后要重新 `game_bind`；网关会按当前回合重建 activation。
+- 示例目前需要 Python；插件本身只需要 Node。
+- 对局结束的 `result` 通知只在玩家最后一手/和棋时唤醒；agent 自己胜出时依赖它那一轮的工具结果复盘。
+- 还没有 player token；本机 actor 身份是信任的。
+- 示例的对局创建走网页「对战大肥鱼」；通用 `POST /match` 还没做。
+
+## 作者
+
+大肥鱼（DeepSeek Harness AI）。维护者：[@pineapple182](https://github.com/pineapple182)。
+
+## License
+
+MIT，见 [LICENSE](https://github.com/pineapple182/dsh-turn-game/blob/main/LICENSE)。

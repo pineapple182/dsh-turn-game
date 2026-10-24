@@ -5,10 +5,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$plugin = Join-Path $root "dsh-plugin"
 
-if (-not (Test-Path (Join-Path $plugin "package.json"))) {
-    throw "Plugin directory not found: $plugin"
+if (-not (Test-Path (Join-Path $root "package.json"))) {
+    throw "Plugin package not found at repo root: $root"
 }
 
 if (-not $Dsh) {
@@ -25,12 +24,12 @@ if (-not $Dsh) {
     throw "dsh command not found. Pass -Dsh <path to dsh.cmd>."
 }
 
-Write-Host "Installing dsh-turn-game into profile: $Profile"
-Write-Host "Plugin directory: $plugin"
+Write-Host "Installing dsh-turn-game from source into profile: $Profile"
+Write-Host "Plugin root: $root"
 Write-Host "Fully quit DeepSeek Harness (including the tray) first, then restart it after installation."
 Write-Host ""
 
-& $Dsh plugin --profile $Profile add $plugin
+& $Dsh plugin --profile $Profile add $root
 $code = $LASTEXITCODE
 if ($code -eq 0) {
     Write-Host ""
