@@ -104,6 +104,8 @@ dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
 - 浏览器 Canvas UI + JSON API + CLI + SSE；79 项 Python 测试。
 - 详细文档、API 和 JSON 字段：[examples/gomoku](https://github.com/pineapple182/dsh-turn-game/tree/main/examples/gomoku)。
 
+> 难度可调：调低 DSH 的 **thinking effort（思考强度）** 会让大肥鱼更快、更省 token，也更容易赢；调高则更慢、更贵，但更难赢。
+
 ![大厅：对战大肥鱼](https://raw.githubusercontent.com/pineapple182/dsh-turn-game/main/docs/screenshots/lobby.png)
 
 | 中盘 | 终局 |

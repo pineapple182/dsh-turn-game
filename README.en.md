@@ -104,6 +104,8 @@ The plugin and gateway stay unchanged. PRs adding a game under `examples/<game>/
 - Canvas UI + JSON API + CLI + SSE; 79 Python tests.
 - Full documentation, API, and JSON fields: [examples/gomoku](https://github.com/pineapple182/dsh-turn-game/tree/main/examples/gomoku).
 
+> Difficulty is adjustable: lower **thinking effort** in DSH for faster, cheaper, weaker play; raise it for slower, more expensive, stronger play.
+
 ![Lobby: play the fish](https://raw.githubusercontent.com/pineapple182/dsh-turn-game/main/docs/screenshots/lobby.png)
 
 | Midgame | Finished |

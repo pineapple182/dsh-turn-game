@@ -190,6 +190,8 @@ dsh plugin --profile desktop add "C:\path\to\dsh-turn-game"
 4. 对局结束时：你赢或和棋，网关会发一个 `result` 复盘通知，让大肥鱼做收尾复盘；它自己下出胜手时，结果已经包含在落子返回里，不重复唤醒。
 5. 点「退出人机对战」或让大肥鱼 `game_unbind` 结束。
 
+> 难度可调：在 DSH 的模型设置里调低 **thinking effort（思考强度）**，大肥鱼落子会更快、更省 token，棋力也会下降；调高则更慢、更贵，但更难赢。想轻松赢一局就调低，别被它赢哭了。
+
 ![大厅：对战大肥鱼](../../docs/screenshots/lobby.png)
 
 游戏本身仍然可以单机双人对局；网关/插件只是可选的「AI 接入层」。协议细节（游戏侧 `/api/turn`、`/api/action` 的字段与状态机）见 [Turn Protocol](../../docs/TURN-PROTOCOL.md)。
