@@ -1,0 +1,8 @@
+# This bundle's row. The profile loader composes it over the profile layer.
+- insert:
+    - id: turn-game
+      name: dsh-turn-game
+      config:
+        gatewayUrl: http://127.0.0.1:8766
+        pollMs: 400
+        enabled: true

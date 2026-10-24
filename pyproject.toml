@@ -1,0 +1,9 @@
+[project]
+name = "game-lab"
+version = "0.1.0"
+description = "五子棋：浏览器 UI + JSON API + 命令行的零依赖小游戏平台"
+requires-python = ">=3.10"
+dependencies = []
+
+# 说明：本项目刻意零第三方依赖，直接 `python -m gamelab` 运行即可，
+# 不需要 pip install。pyproject.toml 仅用于声明项目元信息。

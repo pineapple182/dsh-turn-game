@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>五子棋 · game-lab</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="glow glow-a" aria-hidden="true"></div>
+  <div class="glow glow-b" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i class="stone black"></i><i class="stone white"></i></span>
+        <div class="brand-text">
+          <h1>五子棋</h1>
+          <p>GOMOKU · game-lab</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="badge" id="connBadge" data-state="online" title="页面与本地服务之间的连接状态">
+          <span class="dot"></span><span id="connText">实时连接</span>
+        </div>
+        <div class="badge ghost" title="状态版本号，每次落子 / 悔棋 / 重开都会加一">
+          rev <strong id="revision">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card board-card">
+        <div class="board-head">
+          <div class="turn">
+            <span class="turn-stone" id="turnStone" aria-hidden="true"></span>
+            <div class="turn-text">
+              <strong id="turnLabel">黑方行棋</strong>
+              <span id="turnSub">第 1 手 · 点击棋盘落子</span>
+            </div>
+          </div>
+          <span class="tag mode-tag" id="modeTag" hidden></span>
+          <div class="last-move" id="lastMove" hidden>
+            <span class="last-move-label">最后一手</span>
+            <strong id="lastMoveText">H8</strong>
+          </div>
+        </div>
+
+        <div class="board-shell">
+          <canvas id="board" aria-label="五子棋棋盘，15 路"></canvas>
+          <div class="result-overlay" id="resultOverlay" hidden>
+            <div class="result-card">
+              <p class="result-kicker">对局结束</p>
+              <h2 id="resultTitle">黑方获胜</h2>
+              <p id="resultSub">五子连珠</p>
+              <button class="btn primary" id="overlayReset" type="button">再来一局</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="board-foot">
+          <button class="btn" id="undoBtn" type="button" title="悔棋（快捷键 U）">↶ 悔棋 <kbd>U</kbd></button>
+          <button class="btn" id="resetBtn" type="button" title="重开一局（快捷键 R）">↺ 新开一局 <kbd>R</kbd></button>
+          <button class="btn subtle" id="agentModeBtn" type="button" hidden>对战大肥鱼</button>
+          <button class="btn subtle" id="leaveModeBtn" type="button" hidden>退出人机对战</button>
+          <span class="spacer"></span>
+          <span class="move-count" id="moveCount">0 手</span>
+          <button class="btn subtle" id="copyStateBtn" type="button">复制 JSON</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card console">
+          <div class="card-head">
+            <h2>指令台</h2>
+            <span class="tag">与 CLI 同款</span>
+          </div>
+          <div class="log" id="log" aria-live="polite" aria-label="指令历史"></div>
+          <form class="command-form" id="commandForm">
+            <span class="prompt" aria-hidden="true">›</span>
+            <input
+              id="commandInput"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="输入指令"
+              placeholder="H8 落子 · undo 悔棋 · reset 重开 · help 帮助"
+            />
+            <button class="btn primary" type="submit">发送</button>
+          </form>
+          <div class="chips">
+            <button class="chip" type="button" data-command="state">state</button>
+            <button class="chip" type="button" data-command="undo">undo</button>
+            <button class="chip" type="button" data-command="reset">reset</button>
+            <button class="chip" type="button" data-command="help">help</button>
+          </div>
+        </section>
+
+        <section class="card json-card">
+          <div class="card-head">
+            <h2>状态 JSON</h2>
+            <span class="tag live"><span class="dot"></span>/api/state</span>
+            <div class="head-actions">
+              <button class="icon-btn" id="copyJsonBtn" type="button" title="复制 JSON">⧉</button>
+              <button class="icon-btn" id="downloadJsonBtn" type="button" title="下载 JSON 文件">⤓</button>
+            </div>
+          </div>
+          <pre class="json-view" id="jsonView" aria-live="polite"></pre>
+          <div class="json-foot">
+            <span id="jsonMeta">schemaVersion 1</span>
+            <a href="/api/state" target="_blank" rel="noreferrer">原始接口 ↗</a>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="foot">
+      <span>视觉 = Canvas · 结构 = <code>GET /api/state</code> · 指令 = <code>POST /api/command</code></span>
+      <span class="foot-right">零依赖 · Python 3.12 + 原生 JS</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
